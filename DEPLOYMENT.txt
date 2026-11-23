@@ -1,0 +1,11 @@
+VAULT - built external Next.js deployment
+Target: Linux x64/glibc, Node 24. No Figma/Payload runtime.
+Start: node scripts/start.mjs (uses included .next/standalone).
+Set server secrets on the host; no real environment values are included.
+Build-time public origin: http://localhost:3000
+Rebuild source with NEXT_PUBLIC_SITE_URL set to the actual public HTTPS origin
+before public launch; also rebuild on different OS/CPU/libc targets.
+Apply only missing SQL in database/migrations, including the released-pack upgrade.
+See database/README.md and docs/released-pack-editing.md.
+Never reset existing balances, import the catalog again, or rerun installed SQL.
+Local verification is not live Supabase/multiplayer/publication verification.

@@ -1,0 +1,10 @@
+{
+  "title": "Card Vault",
+  "description": "Collect and value text-based cards, open packs, earn in-game currency, and trade or sell cards in a player-driven marketplace.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false
+  }
+}

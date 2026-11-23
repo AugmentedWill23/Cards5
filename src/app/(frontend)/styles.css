@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Manrope', sans-serif;
+}
+@layer base {
+  body {
+    background: #101015;
+    color: #eae6f0;
+    font-family: var(--font-sans);
+  }
+  button,
+  a,
+  input,
+  summary,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  summary,
+  select {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid #b49af0;
+    outline-offset: 4px;
+  }
+  ::selection {
+    background: #a28bf540;
+    color: #e5d8fa;
+  }
+  select {
+    color-scheme: dark;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #39313f #15131a;
+  }
+}
+.hero-vault {
+  background-image:
+    radial-gradient(ellipse at 77% 50%, #76538d24, transparent 55%),
+    linear-gradient(110deg, #211b2f, #1a1623 65%);
+}
+.hero-orbit {
+  box-shadow:
+    0 0 70px #c099dd04,
+    inset 0 0 50px #c099dd02;
+}
+.card-line-pattern {
+  background-image: repeating-linear-gradient(
+    125deg,
+    transparent,
+    transparent 18px,
+    color-mix(in srgb, var(--tone) 8%, transparent) 19px,
+    transparent 20px
+  );
+  mask-image: linear-gradient(to bottom, #000, transparent 75%);
+}
+.collectible::before {
+  position: absolute;
+  content: '';
+  pointer-events: none;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    color-mix(in srgb, var(--tone) 5%, transparent) 45%,
+    transparent 65%
+  );
+}
+.foil-pack {
+  transform: rotate(-8deg) perspective(500px) rotateY(-12deg);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    98% 5%,
+    100% 8%,
+    98% 12%,
+    100% 15%,
+    100% 88%,
+    98% 91%,
+    100% 95%,
+    100% 100%,
+    0 100%,
+    2% 95%,
+    0 91%,
+    2% 88%,
+    0 15%,
+    2% 12%,
+    0 8%,
+    2% 5%
+  );
+}
+.foil-pack::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent, transparent 2px, #ffffff04 3px),
+    linear-gradient(90deg, #ffffff08, transparent 20%, transparent 70%, #0003);
+  border-top: 6px solid #ffffff0a;
+  border-bottom: 6px solid #ffffff0a;
+  pointer-events: none;
+}
+.reel-track {
+  animation: case-roll 5s cubic-bezier(0.12, 0.65, 0.12, 1) forwards;
+}
+@keyframes case-roll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-166.5rem);
+  }
+}
+.slots-rolling {
+  animation: slot-fade 0.22s ease-in-out infinite alternate;
+}
+@keyframes slot-fade {
+  from {
+    opacity: 0.25;
+    transform: translateY(-5px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(5px);
+    filter: blur(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reel-track {
+    transform: translateX(-166.5rem);
+  }
+}
+
+.figma-custom-code-fragment {
+  display: contents;
+}
+
+.figma-bypass-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 2147483647;
+  transform: translateY(-150%);
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  padding: 8px 12px;
+  font:
+    600 14px/1.2 system-ui,
+    sans-serif;
+  text-decoration: none;
+}
+
+.figma-bypass-link:focus {
+  transform: translateY(0);
+}
