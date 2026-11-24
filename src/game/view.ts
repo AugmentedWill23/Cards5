@@ -1,5 +1,5 @@
-import { calculateValue, rarities, type Rules } from './rules'
-import type { Attributes, Card, World } from './types'
+import { calculateValue, rarities, type Attributes, type Rules } from './rules'
+import type { Card, World } from './types'
 
 type PlayerStats = {
   balance: number
