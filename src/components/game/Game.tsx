@@ -100,6 +100,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
   const inFlight = useRef(false)
   const loading = useRef<Promise<void> | null>(null)
   const knownSequence = useRef(-1)
+  const lastLiveRefresh = useRef(0)
   const load = useCallback(async (afterCommand = false) => {
     if (loading.current) {
       await loading.current
@@ -118,7 +119,11 @@ export default function Game({ initialTab }: { initialTab: string }) {
         if (!res.ok) throw new Error(data.error)
         setSignedOut(false)
         knownSequence.current = Math.max(knownSequence.current, data.sequence)
-        setView((previous) => (!previous || data.sequence >= previous.sequence ? data : previous))
+        setView((previous) =>
+          !previous || data.sequence > previous.sequence || data.catalogRevision !== previous.catalogRevision
+            ? data
+            : previous,
+        )
         setError('')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not connect to the vault')
@@ -166,10 +171,17 @@ export default function Game({ initialTab }: { initialTab: string }) {
             await load()
             return
           }
-          if (!stopped)
+          // The live payload is derived from the same committed world while its
+          // sequence is unchanged. Keep local countdowns running without
+          // forcing the entire game tree to render on every network poll.
+          const now = Date.now()
+          const refreshEvery = initialTab === 'casino' ? 2500 : 20000
+          if (!stopped && data.sequence === knownSequence.current && now - lastLiveRefresh.current >= refreshEvery) {
+            lastLiveRefresh.current = now
             setView((previous) =>
-              previous && data.sequence >= previous.sequence ? { ...previous, ...data } : previous,
+              previous && data.sequence === previous.sequence ? { ...previous, ...data } : previous,
             )
+          }
         }
       } catch (error) {
         if (!stopped)
