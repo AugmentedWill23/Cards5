@@ -250,10 +250,10 @@ export function Collection({
       ? new Map(filtered.map((card) => [
           card.id,
           marketValue(card.attributes, card.snapshot.tv, view.sales).value,
-        ]))
+        ] as const))
       : null
     const timestamps = sort === 'Newest first' || sort === 'Oldest first'
-      ? new Map(filtered.map((card) => [card.id, Date.parse(card.createdAt)]))
+      ? new Map(filtered.map((card) => [card.id, Date.parse(card.createdAt)] as const))
       : null
     return filtered.sort((a, b) =>
       sort === 'True Value'
