@@ -20,7 +20,10 @@ function snapshotMatchesAttributes(snapshot: Card['snapshot'], attributes: Attri
   return keys.every((key) => Object.is(saved[key], attributes[key]))
 }
 
-/** Reuse committed card valuations until either the card inputs or rules change. */
+/**
+ * Reuse committed card valuations while their inputs and formula version match.
+ * Bump rules.version whenever any value-calculation coefficient changes.
+ */
 export function projectWorld(w: World, rules: Rules) {
   const cards: Record<string, Card> = {}
   const stats: Record<string, PlayerStats> = {}
