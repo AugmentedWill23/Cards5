@@ -1524,6 +1524,29 @@ test('world projection safely recalculates legacy snapshots without saved inputs
   assert.notEqual(projected.cards.one.snapshot, w.cards.one.snapshot)
   assert.deepEqual(projected.cards.one.snapshot, calculateValue(original.attributes, rules))
 })
+
+test('world projection preserves card artwork metadata and never mutates saved economy state', () => {
+  const w = world()
+  w.cards.one = {
+    ...w.cards.one,
+    designId: 'design-celestial',
+    designSlug: 'celestial',
+    visual: {
+      theme: 'celestial',
+      finish: 'prismatic',
+      vfx: 'glow',
+      effectName: 'Void',
+      mutationName: 'Chrome',
+    },
+  }
+  const before = structuredClone(w)
+  const projected = projectWorld(w, rules)
+
+  assert.deepEqual(projected.cards.one.visual, before.cards.one.visual)
+  assert.equal(projected.cards.one.designId, before.cards.one.designId)
+  assert.equal(projected.cards.one.designSlug, before.cards.one.designSlug)
+  assert.deepEqual(w, before)
+})
 test('higher slot tiers require both level and wealth and enhanced slots disclose doubled rewards', () => {
   const config=upgradedRules(rules)
   assert.equal(slotConfiguration(config).rewards[4].amount,rules.slots.rewards[4].amount*2)
