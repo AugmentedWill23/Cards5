@@ -1,6 +1,6 @@
 'use client'
 import { dailyBaseReward, slotConfiguration, slotTiers } from '@/game/advancement'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Icon } from './icons'
 import {
@@ -214,8 +214,8 @@ export function Collection({
     const available = new Set(view.cards.filter(c => c.status === 'owned').map(c => c.id))
     setSelected(previous => previous.every(id => available.has(id)) ? previous : previous.filter(id => available.has(id)))
   }, [view.cards])
-  const results = view.cards
-    .filter(
+  const results = useMemo(() => {
+    const filtered = view.cards.filter(
       (c) =>
         `${c.name} ${c.id} ${c.attributes.rarity} ${c.serial??''} ${c.visual?.mutationName??''} ${c.visual?.effectName??''}`.toLowerCase().includes(query.toLowerCase()) &&
         (rarity === 'All rarities' || c.attributes.rarity === rarity) &&
@@ -244,32 +244,57 @@ export function Collection({
                       : c.status === 'owned')) &&
         (source === 'All sources' || c.source === source),
     )
-    .sort((a, b) =>
+    // Market estimates scan recent sales. Calculate once per matching card,
+    // not repeatedly from the O(n log n) sort comparator.
+    const marketEstimates = sort === 'Market estimate'
+      ? new Map(filtered.map((card) => [
+          card.id,
+          marketValue(card.attributes, card.snapshot.tv, view.sales).value,
+        ]))
+      : null
+    const timestamps = sort === 'Newest first' || sort === 'Oldest first'
+      ? new Map(filtered.map((card) => [card.id, Date.parse(card.createdAt)]))
+      : null
+    return filtered.sort((a, b) =>
       sort === 'True Value'
         ? b.snapshot.tv - a.snapshot.tv
         : sort === 'Quick Sell Value'
           ? b.snapshot.qsv - a.snapshot.qsv
           : sort === 'Market estimate'
-            ? marketValue(b.attributes, b.snapshot.tv, view.sales).value -
-              marketValue(a.attributes, a.snapshot.tv, view.sales).value
+            ? (marketEstimates?.get(b.id) ?? 0) - (marketEstimates?.get(a.id) ?? 0)
             : sort === 'Rarity'
               ? rarities.indexOf(b.attributes.rarity) - rarities.indexOf(a.attributes.rarity)
               : sort === 'Serial'
                 ? (a.serial || a.attributes.serial || Infinity) - (b.serial || b.attributes.serial || Infinity)
                 : sort === 'Oldest first'
-                  ? Date.parse(a.createdAt) - Date.parse(b.createdAt)
-                  : Date.parse(b.createdAt) - Date.parse(a.createdAt),
+                  ? (timestamps?.get(a.id) ?? 0) - (timestamps?.get(b.id) ?? 0)
+                  : (timestamps?.get(b.id) ?? 0) - (timestamps?.get(a.id) ?? 0),
     )
+  }, [view.cards, view.sales, query, rarity, quality, mutation, grade, special, status, source, sort])
+  const sourceOptions = useMemo(
+    () => ['All sources', ...new Set(view.cards.map((card) => card.source))],
+    [view.cards],
+  )
+  const collectionValue = useMemo(
+    () => view.cards.reduce((total, card) => total + card.snapshot.tv, 0),
+    [view.cards],
+  )
   const select = (c: Card) =>
     setSelected((s) => s.includes(c.id) ? s.filter((id) => id !== c.id) : s.length < maxQuickSellCards ? [...s, c.id] : s)
-  const bulkSelection = results.filter(c => c.status === 'owned').slice(0, maxQuickSellCards)
-  const selectedCards = view.cards.filter(c => selected.includes(c.id) && c.status === 'owned')
+  const bulkSelection = useMemo(
+    () => results.filter((card) => card.status === 'owned').slice(0, maxQuickSellCards),
+    [results],
+  )
+  const selectedCards = useMemo(
+    () => view.cards.filter((card) => selected.includes(card.id) && card.status === 'owned'),
+    [view.cards, selected],
+  )
   const duplicates = view.duplicateSale
   return (
     <>
       <Title
         title="A collection that’s entirely yours."
-        text={`${view.cards.length} cards · ${fmt(view.cards.reduce((n, c) => n + c.snapshot.tv, 0))} collection True Value · your next favorite is out there.`}
+        text={`${view.cards.length} cards · ${fmt(collectionValue)} collection True Value · your next favorite is out there.`}
       >
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" disabled={view.preview || !duplicates?.ids.length}
@@ -394,7 +419,7 @@ export function Collection({
             },
             {
               label: 'Source pack',
-              options: ['All sources', ...new Set(view.cards.map((c) => c.source))],
+              options: sourceOptions,
               value: source,
               set: setSource,
             },
