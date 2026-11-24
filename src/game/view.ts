@@ -12,7 +12,9 @@ type PlayerStats = {
 
 function snapshotMatchesAttributes(snapshot: Card['snapshot'], attributes: Attributes, version: string) {
   if (snapshot.version !== version) return false
-  const saved = snapshot.inputs
+  // Older persisted cards may predate input snapshots; recalculate those safely.
+  const saved = snapshot?.inputs
+  if (!saved || typeof saved !== 'object') return false
   const keys = Object.keys(attributes) as (keyof Attributes)[]
   if (Object.keys(saved).length !== keys.length) return false
   return keys.every((key) => Object.is(saved[key], attributes[key]))
