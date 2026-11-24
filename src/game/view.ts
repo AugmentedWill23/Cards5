@@ -1,35 +1,82 @@
 import { calculateValue, rarities, type Rules } from './rules'
-import type { Card, World } from './types'
+import type { Attributes, Card, World } from './types'
 
-/** One value calculation per live card, rather than per player and per metric. */
+type PlayerStats = {
+  balance: number
+  collectionValue: number
+  highestCard: number
+  perfects: number
+  rarityRank: number
+  salesCount: number
+}
+
+function snapshotMatchesAttributes(snapshot: Card['snapshot'], attributes: Attributes, version: string) {
+  if (snapshot.version !== version) return false
+  // Older persisted cards may predate input snapshots; recalculate those safely.
+  const saved = snapshot?.inputs
+  if (!saved || typeof saved !== 'object') return false
+  const keys = Object.keys(attributes) as (keyof Attributes)[]
+  if (Object.keys(saved).length !== keys.length) return false
+  return keys.every((key) => Object.is(saved[key], attributes[key]))
+}
+
+/**
+ * Reuse committed card valuations while their inputs and formula version match.
+ * Bump rules.version whenever any value-calculation coefficient changes.
+ */
 export function projectWorld(w: World, rules: Rules) {
   const cards: Record<string, Card> = {}
-  const stats = Object.fromEntries(Object.values(w.players).map(p => [p.id, {
-    balance: p.balance, collectionValue: 0, highestCard: 0, perfects: 0, rarityRank: -1, salesCount: 0,
-  }]))
+  const stats: Record<string, PlayerStats> = {}
+  const rarityRanks = new Map(rarities.map((rarity, index) => [rarity, index]))
+
+  for (const player of Object.values(w.players)) {
+    stats[player.id] = {
+      balance: player.balance,
+      collectionValue: 0,
+      highestCard: 0,
+      perfects: 0,
+      rarityRank: -1,
+      salesCount: 0,
+    }
+  }
+
   for (const card of Object.values(w.cards)) {
     if (card.status === 'burned') continue
-    const current = { ...card, openingSnapshot: card.snapshot, snapshot: calculateValue(card.attributes, rules) }
+    const snapshot = snapshotMatchesAttributes(card.snapshot, card.attributes, rules.version)
+      ? card.snapshot
+      : calculateValue(card.attributes, rules)
+    const current = snapshot === card.snapshot
+      ? { ...card, openingSnapshot: card.snapshot }
+      : { ...card, openingSnapshot: card.snapshot, snapshot }
     cards[card.id] = current
-    const s = stats[card.owner]
-    if (!s) continue
-    s.collectionValue += current.snapshot.tv
-    s.highestCard = Math.max(s.highestCard, current.snapshot.tv)
-    s.perfects += Number(current.snapshot.perfect)
-    s.rarityRank = Math.max(s.rarityRank, rarities.indexOf(card.attributes.rarity))
+
+    const playerStats = stats[card.owner]
+    if (!playerStats) continue
+    playerStats.collectionValue += snapshot.tv
+    playerStats.highestCard = Math.max(playerStats.highestCard, snapshot.tv)
+    playerStats.perfects += Number(snapshot.perfect)
+    playerStats.rarityRank = Math.max(
+      playerStats.rarityRank,
+      rarityRanks.get(card.attributes.rarity) ?? -1,
+    )
   }
-  for (const a of Object.values(w.expansion?.auctions ?? {})) {
-    const high = a.status === 'active' ? a.bids.at(-1) : null
+
+  for (const auction of Object.values(w.expansion?.auctions ?? {})) {
+    const high = auction.status === 'active' ? auction.bids.at(-1) : null
     if (high && !high.npc && stats[high.bidder]) stats[high.bidder].balance += high.amount
   }
-  for (const t of Object.values(w.trades)) if (t.status === 'pending') {
-    if (stats[t.from]) stats[t.from].balance += t.fromCoins
-    if (t.toReserved && stats[t.to]) stats[t.to].balance += t.toCoins
+  for (const trade of Object.values(w.trades)) {
+    if (trade.status !== 'pending') continue
+    if (stats[trade.from]) stats[trade.from].balance += trade.fromCoins
+    if (trade.toReserved && stats[trade.to]) stats[trade.to].balance += trade.toCoins
   }
-  for (const b of Object.values(w.casino?.battles ?? {})) if (b.status === 'waiting')
-    for (const id of b.players) if (stats[id]) stats[id].balance += b.cost
-  for (const [id, h] of Object.entries(w.casino?.hands ?? {}))
-    if (h.status === 'playing' && stats[id]) stats[id].balance += h.bet
+  for (const battle of Object.values(w.casino?.battles ?? {})) {
+    if (battle.status !== 'waiting') continue
+    for (const id of battle.players) if (stats[id]) stats[id].balance += battle.cost
+  }
+  for (const [id, hand] of Object.entries(w.casino?.hands ?? {})) {
+    if (hand.status === 'playing' && stats[id]) stats[id].balance += hand.bet
+  }
   for (const sale of w.sales) if (stats[sale.seller]) stats[sale.seller].salesCount++
   return { cards, stats }
 }
