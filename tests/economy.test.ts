@@ -1512,6 +1512,18 @@ test('world projection reuses current card snapshots and recalculates stale inpu
   assert.notEqual(staleInputs.cards.one.snapshot, original.snapshot)
   assert.deepEqual(staleInputs.cards.one.snapshot.inputs, w.cards.one.attributes)
 })
+
+test('world projection safely recalculates legacy snapshots without saved inputs', () => {
+  const w = world()
+  const original = w.cards.one
+  const legacySnapshot = { ...original.snapshot } as Partial<Card['snapshot']>
+  delete legacySnapshot.inputs
+  w.cards.one = { ...original, snapshot: legacySnapshot as Card['snapshot'] }
+
+  const projected = projectWorld(w, rules)
+  assert.notEqual(projected.cards.one.snapshot, w.cards.one.snapshot)
+  assert.deepEqual(projected.cards.one.snapshot, calculateValue(original.attributes, rules))
+})
 test('higher slot tiers require both level and wealth and enhanced slots disclose doubled rewards', () => {
   const config=upgradedRules(rules)
   assert.equal(slotConfiguration(config).rewards[4].amount,rules.slots.rewards[4].amount*2)
