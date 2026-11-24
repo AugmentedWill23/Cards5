@@ -1495,6 +1495,23 @@ test('net worth includes card ownership and every escrow once; stats match the s
   const projected=projectWorld(w,rules)
   assert.equal(projected.stats.b.balance+projected.stats.b.collectionValue,advancement(w,'b',rules).netWorth)
 })
+
+test('world projection reuses current card snapshots and recalculates stale inputs or rule versions', () => {
+  const w = world()
+  const original = w.cards.one
+  const current = projectWorld(w, rules)
+  assert.equal(current.cards.one.snapshot, original.snapshot)
+
+  w.cards.one = { ...original, snapshot: { ...original.snapshot, version: 'older-rules' } }
+  const staleVersion = projectWorld(w, rules)
+  assert.notEqual(staleVersion.cards.one.snapshot, w.cards.one.snapshot)
+  assert.equal(staleVersion.cards.one.snapshot.version, rules.version)
+
+  w.cards.one = { ...original, attributes: { ...original.attributes, grade: 8 } }
+  const staleInputs = projectWorld(w, rules)
+  assert.notEqual(staleInputs.cards.one.snapshot, original.snapshot)
+  assert.deepEqual(staleInputs.cards.one.snapshot.inputs, w.cards.one.attributes)
+})
 test('higher slot tiers require both level and wealth and enhanced slots disclose doubled rewards', () => {
   const config=upgradedRules(rules)
   assert.equal(slotConfiguration(config).rewards[4].amount,rules.slots.rewards[4].amount*2)
