@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { readJson } from '@/lib/fetch-json'
 import { Icon } from './icons'
 import { Credits, PackVisual, Tag } from './ui'
 import { Guide, Odds } from './screens'
@@ -18,7 +19,7 @@ export default function OperatorPreview() {
     const query = new URLSearchParams(window.location.search)
     void fetch(`/api/operator-preview?${query.toString()}`, { cache: 'no-store' })
       .then(async (response) => {
-        const result = await response.json()
+        const result = await readJson(response)
         if (!response.ok) throw new Error(result.error)
         setData(result)
       })

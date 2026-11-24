@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Button, Field, Modal } from './ui'
+import { readJson } from '@/lib/fetch-json'
 import { Icon } from './icons'
 
 export function OperatorEntry() {
@@ -50,7 +51,7 @@ export function OperatorEntry() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ password }),
             })
-            const result = await response.json()
+            const result = await readJson(response)
             if (!response.ok) throw new Error(result.error)
             setPassword('')
             window.location.assign(result.destination)

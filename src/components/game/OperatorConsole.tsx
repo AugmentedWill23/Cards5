@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Rules } from '@/game/rules'
 import { rarities } from '@/game/rules'
 import type { GameCommand } from '@/game/types'
+import { readJson } from '@/lib/fetch-json'
 import { Icon } from './icons'
 import { Button, CardTile, Credits, Field } from './ui'
 import { AttributeDefaults, CardStudioEditor, CaseStudioEditor, previewCard, StudioNumber, StudioSelect, StudioText, type StudioRow } from './StudioEditors'
@@ -29,7 +30,7 @@ export default function OperatorConsole() {
   const [grantDesign,setGrantDesign]=useState(''),[attributes,setAttributes]=useState<StudioRow>({})
   const [pending,setPending]=useState<PendingGrant|null>(null),[preview,setPreview]=useState<StudioRow|null>(null)
   const load=useCallback(async()=>{
-    const response=await fetch('/api/operator',{cache:'no-store'}),body=await response.json()
+    const response=await fetch('/api/operator',{cache:'no-store'}),body=await readJson(response)
     if(!response.ok)throw new Error(body.error||'The operator workspace is unavailable.')
     setData(body)
   },[])
@@ -37,7 +38,7 @@ export default function OperatorConsole() {
   const editable=['owner','operator','economy'].includes(data?.role??'')
   const post=async(input:StudioRow)=>{
     const response=await fetch('/api/operator',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,reason,password})})
-    const result=await response.json()
+    const result=await readJson(response)
     if(!response.ok){
       setFields(result.fieldErrors??{})
       throw Object.assign(new Error(result.error||'The operation failed.'),{status:response.status})

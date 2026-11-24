@@ -7,6 +7,7 @@ import Expansion from './Expansion'
 import Casino from './Casino'
 import { dailyBaseReward } from '@/game/advancement'
 import { PullCelebration } from './CardEffects'
+import { readJson } from '@/lib/fetch-json'
 import { Icon, toneStyle } from './icons'
 import {
   Button,
@@ -107,7 +108,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
     const request = (async () => {
       try {
         const res = await fetch('/api/game', { cache: 'no-store' })
-        const data = await res.json()
+        const data = await readJson(res)
         if (res.status === 401) {
           setView(null)
           setSignedOut(true)
@@ -132,7 +133,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
     setPendingRecovery(!!sessionStorage.getItem('vault-pending-command'))
     setSeen(localStorage.getItem('vault-updates-seen') || '')
     void fetch('/api/operator')
-      .then((r) => r.json())
+      .then(readJson)
       .then((d) => setIsOperator(d.authorized === true))
       .catch(() => {})
   }, [load])
@@ -159,7 +160,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
             cache: 'no-store',
             signal: controller.signal,
           })
-          const data = await response.json()
+          const data = await readJson(response)
           if (!response.ok) throw new Error(data.error || 'Live synchronization interrupted.')
           if (!stopped && data.sequence > knownSequence.current) {
             await load()
@@ -214,7 +215,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...data }),
     })
-    const result = await res.json()
+    const result = await readJson(res)
     if (!res.ok) throw new Error(result.error)
     if (!result.confirmationRequired) {
       sessionStorage.removeItem('vault-pending-command')
@@ -223,7 +224,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
       else {
         try {
           const response = await fetch('/api/operator', { cache: 'no-store' })
-          const operator = await response.json()
+          const operator = await readJson(response)
           setIsOperator(operator.authorized === true)
         } catch {
           setIsOperator(false)
@@ -267,7 +268,7 @@ export default function Game({ initialTab }: { initialTab: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...command, key }),
       })
-      const data = await res.json()
+      const data = await readJson(res)
       if (!res.ok) {
         if (res.status < 500) {
           sessionStorage.removeItem('vault-pending-command')
